@@ -72,21 +72,47 @@ function request(endpoint, method, body) {
 
 async function main() {
   try {
-    console.log(`[Notion Sync] Searching for task: ${taskId}...`);
-    // Search for the task globally. The unique ID is typically queryable.
-    const searchRes = await request('/search', 'POST', { query: taskId });
-    const pages = searchRes.results.filter(r => r.object === 'page');
+    console.log(`[Notion Sync] Processing task: ${taskId}...`);
     
-    if (pages.length === 0) {
-      console.log(`[Notion Sync] No page found for ${taskId}. Skipping Notion sync.`);
+    // Parse the numeric part of the TASK-XXX ID
+    const match = taskId.match(/(?:TASK-)?(\d+)/i);
+    if (!match) {
+      console.log(`[Notion Sync] Task ID '${taskId}' does not contain a numeric ID. Skipping Notion sync.`);
       return;
     }
-    
-    // We assume the first result that matches the query is the correct page
+    const taskNumber = parseInt(match[1], 10);
+
+    // 1. Search for the "Tareas / Issues" database
+    const searchRes = await request('/search', 'POST', {
+      filter: { property: 'object', value: 'database' },
+      query: 'Tareas / Issues'
+    });
+    const db = searchRes.results?.find(r => r.object === 'database');
+    if (!db) {
+      console.log(`[Notion Sync] Database "Tareas / Issues" not found. Skipping Notion sync.`);
+      return;
+    }
+
+    // 2. Query the database for the page matching the Unique ID
+    const queryRes = await request(`/databases/${db.id}/query`, 'POST', {
+      filter: {
+        property: 'ID',
+        unique_id: {
+          equals: taskNumber
+        }
+      }
+    });
+
+    const pages = queryRes.results || [];
+    if (pages.length === 0) {
+      console.log(`[Notion Sync] No page found for TASK-${taskNumber} in database ${db.id}. Skipping Notion sync.`);
+      return;
+    }
+
     const pageId = pages[0].id;
-    console.log(`[Notion Sync] Found page ${pageId}. Updating status to '${targetState}'...`);
-    
-    // Update the state
+    console.log(`[Notion Sync] Found page ${pageId} for TASK-${taskNumber}. Updating status to '${targetState}'...`);
+
+    // 3. Update the state
     await request(`/pages/${pageId}`, 'PATCH', {
       properties: {
         'Estado': {
@@ -94,8 +120,8 @@ async function main() {
         }
       }
     });
-    
-    console.log(`[Notion Sync] Successfully updated ${taskId} to '${targetState}'.`);
+
+    console.log(`[Notion Sync] Successfully updated TASK-${taskNumber} to '${targetState}'.`);
   } catch (err) {
     console.error('[Notion Sync] Error:', err.message);
   }
