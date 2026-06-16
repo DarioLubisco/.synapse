@@ -23,7 +23,16 @@ if (args.length < 2) {
   process.exit(1);
 }
 
-const [taskId, targetState] = args;
+function normalizeState(state) {
+  const lower = state.toLowerCase().replace(/[-_]/g, ' ');
+  if (lower === 'in progress') return 'In progress';
+  if (lower === 'done' || lower === 'completed' || lower === 'complete') return 'Done';
+  if (lower === 'not started' || lower === 'to do' || lower === 'todo') return 'Not started';
+  return state; // fallback
+}
+
+const taskId = args[0];
+const targetState = normalizeState(args[1]);
 
 function request(endpoint, method, body) {
   return new Promise((resolve, reject) => {

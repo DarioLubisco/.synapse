@@ -14,7 +14,7 @@ if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
     
     if [ ! -z "$TASKS" ]; then
         echo "[Git Hook] Detected merge into $CURRENT_BRANCH containing tasks. Syncing to Notion..."
-        SCRIPT_PATH="$(git rev-parse --show-toplevel)/.synapse/sync_notion_state.js"
+        SCRIPT_PATH="/home/synapse/source/.synapse/sync_notion_state.js"
         
         for TASK_ID in $TASKS; do
             if [ -f "$SCRIPT_PATH" ]; then

@@ -16,7 +16,7 @@ if [ "$FLAG" = "1" ]; then
         TASK_ID="${BASH_REMATCH[1]}"
         echo "[Git Hook] Detected branch for $TASK_ID. Syncing to Notion..."
         
-        SCRIPT_PATH="$(git rev-parse --show-toplevel)/.synapse/sync_notion_state.js"
+        SCRIPT_PATH="/home/synapse/source/.synapse/sync_notion_state.js"
         if [ -f "$SCRIPT_PATH" ]; then
             # Run in background to avoid blocking git checkout
             node "$SCRIPT_PATH" "$TASK_ID" "In Progress" &
