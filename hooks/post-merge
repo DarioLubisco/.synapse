@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# post-merge hook
+
+# Check current branch
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$CURRENT_BRANCH" = "main" ] || [ "$CURRENT_BRANCH" = "master" ]; then
+    # Extract TASK IDs from the merge commit message
+    MERGE_MSG=$(git log -1 --pretty=%B)
+    
+    # Use grep to find all TASK-XXX references
+    TASKS=$(echo "$MERGE_MSG" | grep -o 'TASK-[0-9]\+' | sort -u)
+    
+    if [ ! -z "$TASKS" ]; then
+        echo "[Git Hook] Detected merge into $CURRENT_BRANCH containing tasks. Syncing to Notion..."
+        SCRIPT_PATH="$(git rev-parse --show-toplevel)/.synapse/sync_notion_state.js"
+        
+        for TASK_ID in $TASKS; do
+            if [ -f "$SCRIPT_PATH" ]; then
+                node "$SCRIPT_PATH" "$TASK_ID" "Done" &
+            else
+                echo "[Git Hook] Error: Notion sync script not found at $SCRIPT_PATH"
+            fi
+        done
+    fi
+fi
